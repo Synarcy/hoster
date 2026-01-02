@@ -1,27 +1,21 @@
 const sharp = require('sharp');
 
-exports.handler = async (event) => {
-    const headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'text/plain'
-    };
+module.exports = async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
 
     try {
-        const params = event.queryStringParameters || {};
-        const url = params.url;
-        const w = Math.min(parseInt(params.w) || 100, 500);
-        const h = Math.min(parseInt(params.h) || 100, 500);
+        const { url, w = 100, h = 100 } = req.query;
 
         if (!url) {
-            return { statusCode: 400, headers, body: 'missing url param' };
+            return res.status(400).send('missing url param');
         }
 
-        const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-        if (!res.ok) throw new Error('fetch failed');
+        const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        if (!response.ok) throw new Error('fetch failed');
 
-        const buffer = Buffer.from(await res.arrayBuffer());
+        const buffer = Buffer.from(await response.arrayBuffer());
         const { data, info } = await sharp(buffer)
-            .resize(w, h, { fit: 'fill' })
+            .resize(Math.min(parseInt(w), 500), Math.min(parseInt(h), 500), { fit: 'fill' })
             .raw()
             .toBuffer({ resolveWithObject: true });
 
@@ -30,13 +24,14 @@ exports.handler = async (event) => {
             pixels.push(`${data[i]},${data[i + 1]},${data[i + 2]}`);
         }
 
-        return {
-            statusCode: 200,
-            headers,
-            body: `${info.width},${info.height};${pixels.join(';')}`
-        };
+        res.status(200).send(`${info.width},${info.height};${pixels.join(';')}`);
 
     } catch (e) {
-        return { statusCode: 500, headers, body: `error: ${e.message}` };
+        res.status(500).send(`error: ${e.message}`);
     }
 };
+```
+
+Same `package.json` in root. Vercel URL would be:
+```
+https://your-project.vercel.app/api/convert?url=...&w=100&h=100
