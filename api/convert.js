@@ -1,41 +1,37 @@
 const sharp = require('sharp');
 
-exports.handler = async (event) => {
-    const headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'text/plain'
-    };
-    
+module.exports = async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
     try {
-        const { url, w = 100, h = 100 } = event.queryStringParameters || {};
-        
+        const { url, w = 100, h = 100 } = req.query;
+
         if (!url) {
-            return { statusCode: 400, headers, body: 'missing url param' };
+            return res.status(400).send('missing url param');
         }
-        
-        const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-        if (!res.ok) throw new Error('fetch failed');
-        
-        const buffer = await res.arrayBuffer();
-        const width = Math.min(parseInt(w), 500);
-        const height = Math.min(parseInt(h), 500);
-        
-        const { data, info } = await sharp(Buffer.from(buffer))
-            .resize(width, height, { fit: 'fill' })
+
+        const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        if (!response.ok) throw new Error('fetch failed');
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const { data, info } = await sharp(buffer)
+            .resize(Math.min(parseInt(w), 500), Math.min(parseInt(h), 500), { fit: 'fill' })
             .raw()
             .toBuffer({ resolveWithObject: true });
-        
+
         const pixels = [];
         for (let i = 0; i < data.length; i += info.channels) {
-            pixels.push(`${data[i]},${data[i+1]},${data[i+2]}`);
+            pixels.push(`${data[i]},${data[i + 1]},${data[i + 2]}`);
         }
-        
-        return {
-            statusCode: 200,
-            headers,
-            body: `${info.width},${info.height};${pixels.join(';')}`
-        };
+
+        res.status(200).send(`${info.width},${info.height};${pixels.join(';')}`);
+
     } catch (e) {
-        return { statusCode: 500, headers, body: `error: ${e.message}` };
+        res.status(500).send(`error: ${e.message}`);
     }
 };
+```
+
+Same `package.json` in root. Vercel URL would be:
+```
+https://your-project.vercel.app/api/convert?url=...&w=100&h=100
