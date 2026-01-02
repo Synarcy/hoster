@@ -1,6 +1,6 @@
 import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
-Deno.serve(async (req: Request) => {
+Deno.serve(async (req) => {
     const headers = {
         "Access-Control-Allow-Origin": "*",
         "Content-Type": "text/plain"
@@ -23,7 +23,7 @@ Deno.serve(async (req: Request) => {
         let img = await Image.decode(buffer);
         img = img.resize(w, h);
 
-        const pixels: string[] = [];
+        const pixels = [];
         for (let y = 1; y <= img.height; y++) {
             for (let x = 1; x <= img.width; x++) {
                 const color = img.getPixelAt(x, y);
@@ -34,8 +34,7 @@ Deno.serve(async (req: Request) => {
             }
         }
 
-        const data = `${img.width},${img.height};${pixels.join(";")}`;
-        return new Response(data, { status: 200, headers });
+        return new Response(`${img.width},${img.height};${pixels.join(";")}`, { status: 200, headers });
 
     } catch (e) {
         return new Response(`error: ${e.message}`, { status: 500, headers });
