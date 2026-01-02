@@ -1,4 +1,4 @@
-import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
+import { decode } from "https://deno.land/x/pngs@0.1.1/mod.ts";
 
 Deno.serve(async (req) => {
     const headers = {
@@ -9,8 +9,8 @@ Deno.serve(async (req) => {
     try {
         const url = new URL(req.url);
         const imgUrl = url.searchParams.get("url");
-        const w = Math.min(parseInt(url.searchParams.get("w") || "100"), 500);
-        const h = Math.min(parseInt(url.searchParams.get("h") || "100"), 500);
+        const w = parseInt(url.searchParams.get("w") || "100");
+        const h = parseInt(url.searchParams.get("h") || "100");
 
         if (!imgUrl) {
             return new Response("missing url param", { status: 400, headers });
@@ -20,18 +20,14 @@ Deno.serve(async (req) => {
         if (!res.ok) throw new Error("fetch failed");
 
         const buffer = new Uint8Array(await res.arrayBuffer());
-        let img = await Image.decode(buffer);
-        img = img.resize(w, h);
+        const img = decode(buffer);
 
         const pixels = [];
-        for (let y = 1; y <= img.height; y++) {
-            for (let x = 1; x <= img.width; x++) {
-                const color = img.getPixelAt(x, y);
-                const r = (color >> 24) & 0xFF;
-                const g = (color >> 16) & 0xFF;
-                const b = (color >> 8) & 0xFF;
-                pixels.push(`${r},${g},${b}`);
-            }
+        for (let i = 0; i < img.image.length; i += 4) {
+            const r = img.image[i];
+            const g = img.image[i + 1];
+            const b = img.image[i + 2];
+            pixels.push(`${r},${g},${b}`);
         }
 
         return new Response(`${img.width},${img.height};${pixels.join(";")}`, { status: 200, headers });
