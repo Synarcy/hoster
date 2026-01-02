@@ -30,8 +30,3 @@ module.exports = async (req, res) => {
         res.status(500).send(`error: ${e.message}`);
     }
 };
-```
-
-Same `package.json` in root. Vercel URL would be:
-```
-https://your-project.vercel.app/api/convert?url=...&w=100&h=100
